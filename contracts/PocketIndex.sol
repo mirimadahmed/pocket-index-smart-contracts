@@ -331,6 +331,7 @@ contract PocketIndex {
     uint256 public lastBuyTime;
     uint256 public managementFee;
     uint256 public performanceFee;
+    uint256 public totalBulkBuys;
 
     event NewAssetAdded(address contractAddress, uint256 timestamp);
     
@@ -362,6 +363,9 @@ contract PocketIndex {
         addAsset(0x299D57d6f674814893B8b34EB635e3add5Fab1F7);
         addAsset(0xf672c3cDD3C143C05Aada34f50d4ad519558994F);
         addAsset(0xEdDEB2ff49830f3aa30Fee2F7FaBC5136845304a);
+        totalBulkBuys = 0;
+        performanceFee = 1;
+        managementFee = 1;
     }
 
     // Add to asset array
@@ -434,6 +438,9 @@ contract PocketIndex {
 
         // Empty next buyers array
         nextBuyers = new address[](0);
+
+        // Add to total buys
+        totalBulkBuys++;
     }
 
     // TODO: Need to change this so we sell a user's balance and give him back his usdts
@@ -485,6 +492,38 @@ contract PocketIndex {
         }
         return balances;
     }
+
+    // Get user's balance for a specific asset
+    function getBalance(address _contractAddress) public view returns (uint256) {
+        return userBalances[address(msg.sender)].balances[_contractAddress];
+    }
+
+    // Get last buy time
+    function getLastBuyTime() public view returns (uint256) {
+        return lastBuyTime;
+    }
+
+    // Get next buyers array
+    function getNextBuyers() public view returns (address[] memory) {
+        return nextBuyers;
+    }
+
+    // Get total amount of assets
+    function getTotalAssets() public view returns (uint) {
+        return assets.length;
+    }
+
+    // Get total amount of assets
+    function getTotalBuyers() public view returns (uint) {
+        return nextBuyers.length;
+    }
+
+    // Get total amount invested in a specific asset
+    function getTotalInvestedForAsset(address _contractAddress) public view returns (uint256) {
+        return IERC20Extended(_contractAddress).balanceOf(address(this));
+    }
+
+    // PRIVATE FUNCTIONS
 
     // See if user is already added to nextBuyers array
     function buyerAlreadyAdded (address buyer) internal view returns (bool) {
