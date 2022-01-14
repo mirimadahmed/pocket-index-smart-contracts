@@ -391,9 +391,18 @@ contract PocketIndex {
 
         // Set current time
         lastBuyTime = block.timestamp;
+
+        // Note current balances of all assets
+
+        uint256[] memory currentBalances = new uint256[](assets.length);
+        uint totalAssets = assets.length;
+
+        for (uint j = 0; j < totalAssets; j++) {
+            // Get the amount of tokens the contract has
+            currentBalances[j] = IERC20Extended(assets[j].contractAddress).balanceOf(address(this));
+        }
         
         // Loop and buy each asset
-        uint totalAssets = assets.length;
         for (uint i = 0; i < totalAssets; i++) {
             address[] memory path = new address[](2);
             path[1] = assets[i].contractAddress;
@@ -415,7 +424,8 @@ contract PocketIndex {
             // Each asset
             for (uint j = 0; j < totalAssets; j++) {
                 // Get the amount of tokens the user has
-                uint256 assetBalanceOfContract = IERC20Extended(assets[j].contractAddress).balanceOf(address(this));
+                uint256 assetBalanceOfContract = IERC20Extended(assets[j].contractAddress).balanceOf(address(this)).sub(currentBalances[j]);
+
                 userBalances[nextBuyers[i]].balances[assets[j].contractAddress] += assetBalanceOfContract.mul(userBalances[nextBuyers[i]].usdtBalance).div(100);
             }
             // Empty usdt balance
