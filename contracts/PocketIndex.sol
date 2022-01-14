@@ -364,24 +364,35 @@ contract PocketIndex {
         addAsset(0xEdDEB2ff49830f3aa30Fee2F7FaBC5136845304a);
     }
 
+    // Add to asset array
     function addAsset(address _contractAddress) public {
         assets.push(Asset(_contractAddress, 0));
         emit NewAssetAdded(_contractAddress, block.timestamp);
     }
 
+    // Get current asset array
     function getAllAssets() public view returns (Asset[] memory) {
         return assets;
     }
 
+    // Bulk buy function that buys for everyone who pitched in money
     function bulkBuy() public {
+        // Should only be interacted with by the owner
         require(msg.sender == owner, "Can't be interacted");
+
+        // Must have some usdts
         require(baseTokenAddress.balanceOf(address(this)) > 0, "Don't have anything");
         
+        // Approve balance to router
         baseTokenAddress.approve(routerAddress, baseTokenAddress.balanceOf(address(this)));
 
+        // Divide total balance into 10
         uint256 equalBalance = baseTokenAddress.balanceOf(address(this)).mul(10).div(100);
+
+        // Set current time
         lastBuyTime = block.timestamp;
         
+        // Loop and buy each asset
         uint totalAssets = assets.length;
         for (uint i = 0; i < totalAssets; i++) {
             address[] memory path = new address[](2);
@@ -396,20 +407,26 @@ contract PocketIndex {
             );
         }
 
-        // Calculate the user percentages 
+        // Loop and buy each asset for each user
         uint totalBuyers = nextBuyers.length;
+
+        // Each buyer
         for (uint i = 0; i < totalBuyers; i++) {
+            // Each asset
             for (uint j = 0; j < totalAssets; j++) {
-                userBalances[nextBuyers[i]].balances[assets[j].contractAddress] += IERC20Extended(assets[j].contractAddress).balanceOf(address(this)).mul(userBalances[nextBuyers[i]].usdtBalance).div(100);
+                // Get the amount of tokens the user has
+                uint256 assetBalanceOfContract = IERC20Extended(assets[j].contractAddress).balanceOf(address(this));
+                userBalances[nextBuyers[i]].balances[assets[j].contractAddress] += assetBalanceOfContract.mul(userBalances[nextBuyers[i]].usdtBalance).div(100);
             }
+            // Empty usdt balance
             userBalances[nextBuyers[i]].usdtBalance = 0;
         }
 
         // Empty next buyers array
         nextBuyers = new address[](0);
-
     }
 
+    // TODO: Need to change this so we sell a user's balance and give him back his usdts
     function getEverythingBack() public {
         require(msg.sender == owner, "Can't be interacted");
         require(baseTokenAddress.balanceOf(address(this)) > 0, "Don't have anything");
@@ -421,29 +438,45 @@ contract PocketIndex {
         }
     }
 
+    // New user pitches amount to bulk buy
     function pitchAmount(uint256 amount) public {
         require(baseTokenAddress.balanceOf(msg.sender) >= amount, "Don't have enough amount in e.USDT");
+        
+        // Transfer the amount to the smart contract
         baseTokenAddress.transferFrom(msg.sender, address(this), amount);
+
+        // Increment user USDT balance
         userBalances[msg.sender].usdtBalance += amount;
+
+        // Add to next buyers array
         if (!buyerAlreadyAdded(msg.sender)) {
             nextBuyers.push(msg.sender);
         }
     }
 
+    // Get user's USDT balance
     function getUSDTBalance() public view returns (uint256) {
         return userBalances[msg.sender].usdtBalance;
     }
 
+    // Withdraw from user's USDT balance
     function withdrawUSDTBalance(uint256 amount) public {
         require (userBalances[msg.sender].usdtBalance > 0, "Don't have anything to withdraw");
         require (amount >= userBalances[msg.sender].usdtBalance, "Don't have enough amount to withdraw");
         baseTokenAddress.transfer(msg.sender, amount);
     }
 
-    function disolvePosition() public {
-        
+    // Get user's balance for all assets
+    function getBalances() public view returns (uint256[] memory) {
+        uint totalAssets = assets.length;
+        uint256[] memory balances = new uint256[](totalAssets);
+        for (uint j = 0; j < totalAssets; j++) {
+            balances[j] = userBalances[address(msg.sender)].balances[assets[j].contractAddress];
+        }
+        return balances;
     }
 
+    // See if user is already added to nextBuyers array
     function buyerAlreadyAdded (address buyer) internal view returns (bool) {
         uint totalBuyers = nextBuyers.length;
         for (uint i = 0; i < totalBuyers; i++) {
