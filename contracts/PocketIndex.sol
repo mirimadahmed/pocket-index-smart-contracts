@@ -443,15 +443,36 @@ contract PocketIndex {
         totalBulkBuys++;
     }
 
-    // TODO: Need to change this so we sell a user's balance and give him back his usdts
-    function getEverythingBack() public {
+    // Sell a user's balance and give him back his usdts
+    function disolvePosition() public {
         require(msg.sender == owner, "Can't be interacted");
-        require(baseTokenAddress.balanceOf(address(this)) > 0, "Don't have anything");
-        baseTokenAddress.transfer(msg.sender, baseTokenAddress.balanceOf(address(this)));
-        uint totalAssets = assets.length;
+        uint256 balanceBeforeSell = baseTokenAddress.balanceOf(address(this));
 
+        uint totalAssets = assets.length;
+        
+        // Loop and sell each asset
         for (uint i = 0; i < totalAssets; i++) {
-            IERC20Extended(assets[i].contractAddress).transfer(msg.sender, IERC20Extended(assets[i].contractAddress).balanceOf(address(this)));
+            address[] memory path = new address[](2);
+            path[0] = assets[i].contractAddress;
+            path[1] = address(baseTokenAddress);
+            uint256 userBalance = userBalances[msg.sender].balances[assets[i].contractAddress];
+            router.swapExactTokensForTokens(
+                userBalance,
+                0,
+                path,
+                address(this),
+                block.timestamp
+            );
+        }
+
+        uint256 userUSDTBalance = baseTokenAddress.balanceOf(address(this)).sub(balanceBeforeSell);
+        uint256 _managementFee = userUSDTBalance.mul(managementFee).div(1000);
+        uint256 _performanceFee = userUSDTBalance.mul(performanceFee).div(1000);
+        baseTokenAddress.transfer(msg.sender, userUSDTBalance.sub(_managementFee).sub(_performanceFee));
+
+        // Loop and set asset balances to 0
+        for (uint i = 0; i < totalAssets; i++) {
+            userBalances[msg.sender].balances[assets[i].contractAddress] = 0;
         }
     }
 
