@@ -493,30 +493,30 @@ contract PocketIndex {
     }
 
     // Get user's USDT balance
-    function getUSDTBalance() public view returns (uint256) {
-        return userBalances[msg.sender].usdtBalance;
+    function getUSDTBalance(address user) public view returns (uint256) {
+        return userBalances[user].usdtBalance;
     }
 
     // Withdraw from user's USDT balance
-    function withdrawUSDTBalance(uint256 amount) public {
-        require (userBalances[msg.sender].usdtBalance > 0, "Don't have anything to withdraw");
-        require (amount >= userBalances[msg.sender].usdtBalance, "Don't have enough amount to withdraw");
-        baseTokenAddress.transfer(msg.sender, amount);
+    function withdrawUSDTBalance(address user, uint256 amount) public {
+        require (userBalances[user].usdtBalance > 0, "Don't have anything to withdraw");
+        require (amount >= userBalances[user].usdtBalance, "Don't have enough amount to withdraw");
+        baseTokenAddress.transfer(user, amount);
     }
 
     // Get user's balance for all assets
-    function getBalances() public view returns (uint256[] memory) {
+    function getBalances(address user) public view returns (uint256[] memory) {
         uint totalAssets = assets.length;
         uint256[] memory balances = new uint256[](totalAssets);
         for (uint j = 0; j < totalAssets; j++) {
-            balances[j] = userBalances[address(msg.sender)].balances[assets[j].contractAddress];
+            balances[j] = userBalances[address(user)].balances[assets[j].contractAddress];
         }
         return balances;
     }
 
     // Get user's balance for a specific asset
-    function getBalance(address _contractAddress) public view returns (uint256) {
-        return userBalances[address(msg.sender)].balances[_contractAddress];
+    function getBalance(address user, address _contractAddress) public view returns (uint256) {
+        return userBalances[address(user)].balances[_contractAddress];
     }
 
     // Get last buy time
