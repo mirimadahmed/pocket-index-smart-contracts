@@ -5,11 +5,11 @@ const main = async () => {
     console.log("Deploying contracts with account: ", deployer.address);
     console.log("Account balance: ", accountBalance.toString());
   
-    const Token = await hre.ethers.getContractFactory("PocketIndex");
+    const Token = await hre.ethers.getContractFactory("IndexLPToken");
     const portal = await Token.deploy();
     await portal.deployed();
   
-    console.log("PocketIndex address: ", portal.address);
+    console.log("IndexLPToken address: ", portal.address);
   };
   
   const runMain = async () => {
